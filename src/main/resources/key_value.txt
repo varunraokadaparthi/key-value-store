@@ -1,0 +1,26 @@
+post first_name john
+post last_name doe
+post age 20
+post phone 9999999999
+post college NEU
+post nuid 12345
+post course bsds
+post grade A
+post level graduate
+post start_month jan
+post start_year 2023
+put phone 8888888888
+put college Khoury
+put grade A-
+put level undergraduate
+put age 21
+get phone
+get college
+get grade
+get level
+get age
+delete phone
+delete college
+delete grade
+delete level
+delete age
