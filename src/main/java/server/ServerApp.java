@@ -26,10 +26,17 @@ public class ServerApp implements App {
   private final int port;
 
 
+  /**
+   * Create the Server App object.
+   */
   public ServerApp() {
     this.port = Constants.DEFAULT_RMI_PORT;
   }
 
+  /**
+   * Create the Server App object with given server rmi port number.
+   * @param port server rmi port number.
+   */
   public ServerApp(int port) {
     this.port = port;
   }
@@ -40,9 +47,8 @@ public class ServerApp implements App {
       LogManager.getLogManager().readConfiguration(ServerApp.class.getResourceAsStream(SERVER_LOGGING_PROPERTIES));
     } catch (IOException e) {
       System.out.println("Unable to read log properties file!!!");
-      ;
     }
-
+    // Set the RMI server hostname to localhost
     System.setProperty("java.rmi.server.hostname", Constants.LOCAL_HOST);
     try {
       Server server = new Server();

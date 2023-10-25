@@ -8,6 +8,9 @@ import server.Server;
 
 import static org.junit.Assert.assertEquals;
 
+/**
+ * Test class for Server.
+ */
 public class ServerTest {
 
   @Test

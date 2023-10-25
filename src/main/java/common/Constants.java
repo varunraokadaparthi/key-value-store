@@ -16,6 +16,9 @@ public class Constants {
    */
   public static final int DEFAULT_PORT = 8081;
 
+  /**
+   * The default port number for rmi communication.
+   */
   public static final int DEFAULT_RMI_PORT = 1099;
 
 

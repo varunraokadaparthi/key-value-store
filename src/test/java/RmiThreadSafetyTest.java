@@ -8,6 +8,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.assertEquals;
 
+/**
+ * The `RmiThreadSafetyTest` class defines a JUnit test case for evaluating the thread safety
+ * of a remote key-value service accessed through RMI (Remote Method Invocation).
+ */
 public class RmiThreadSafetyTest {
   @Test
   public void testThreadSafety() {

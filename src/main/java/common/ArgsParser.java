@@ -3,8 +3,18 @@ package common;
 import client.ClientApp;
 import server.ServerApp;
 
+/**
+ * The `ArgsParser` class is responsible for parsing command-line arguments and creating an instance
+ * of the appropriate `App` class based on the arguments provided.
+ */
 public class ArgsParser {
 
+  /**
+   * Parses the command-line arguments and returns an instance of the appropriate `App` class.
+   *
+   * @param args An array of command-line arguments.
+   * @return An instance of the `App` class based on the parsed arguments.
+   */
   public App getApp(String[] args) {
     if (args.length == 2 || args.length > 3) {
       System.out.println("Invalid arguments!!!");

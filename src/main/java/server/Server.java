@@ -11,6 +11,11 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.logging.Logger;
 
+/**
+ * The `Server` class implements the `Service` interface and provides the server-side functionality
+ * for a key-value service accessed through RMI (Remote Method Invocation).
+ * It supports locking mechanism for concurrent operations' synchronization.
+ */
 public class Server implements Service {
 
   private static final Logger LOGGER = Logger.getLogger(Server.class.getName());
@@ -28,6 +33,11 @@ public class Server implements Service {
   private static final String KEY_UPDATED = "Key successfully updated!!!";
 
 
+  /**
+   * Constructs a new `Server` object, initializing the synchronized map and locks.
+   *
+   * @throws RemoteException If a remote communication error occurs.
+   */
   public Server() throws RemoteException {
     this.synchronizedMap = new HashMap<>();
     this.lock = new ReentrantReadWriteLock();
@@ -106,6 +116,12 @@ public class Server implements Service {
     return this.synchronizedMap.size();
   }
 
+  /**
+   * Checks if the synchronized map contains the specified key.
+   *
+   * @param key The key to check for existence.
+   * @return `true` if the key exists in the map, `false` otherwise.
+   */
   private boolean containsKey(String key) {
     boolean exists;
     try {
@@ -117,6 +133,11 @@ public class Server implements Service {
     return exists;
   }
 
+  /**
+   * Logs the received message for the server.
+   *
+   * @param message The message to log as a received request.
+   */
   private void logReceivedMessage(String message) {
     LOGGER.info("Received request: " + message);
   }

@@ -31,10 +31,17 @@ public class ClientApp implements App {
   private final int port;
   private static final String REMOTE_OBJECT = "server";
 
+  /**
+   * Create the Client App object.
+   */
   public ClientApp() {
     this.port = Constants.DEFAULT_RMI_PORT;
   }
 
+  /**
+   * Create the Client App object with given server rmi port number.
+   * @param port server rmi port number.
+   */
   public ClientApp(int port) {
     this.port = port;
   }
