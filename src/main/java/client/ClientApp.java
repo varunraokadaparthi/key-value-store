@@ -40,6 +40,7 @@ public class ClientApp implements App {
 
   /**
    * Create the Client App object with given server rmi port number.
+   *
    * @param port server rmi port number.
    */
   public ClientApp(int port) {

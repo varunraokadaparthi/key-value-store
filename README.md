@@ -1,4 +1,4 @@
-# tcp-udp-key-value-store
+# key-value-store
 
 ### Executable
 

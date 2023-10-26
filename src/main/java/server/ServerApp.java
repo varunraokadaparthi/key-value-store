@@ -6,11 +6,9 @@ import common.Service;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.MalformedURLException;
-import java.rmi.AlreadyBoundException;
-import java.rmi.Naming;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
+import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.logging.LogManager;
 import java.util.logging.Logger;
@@ -23,6 +21,7 @@ public class ServerApp implements App {
 
   private static final Logger LOGGER = Logger.getLogger(ServerApp.class.getName());
   private static final String SERVER_LOGGING_PROPERTIES = File.separator + "server-logging.properties";
+  private static final String REMOTE_OBJECT = "server";
   private final int port;
 
 
@@ -35,6 +34,7 @@ public class ServerApp implements App {
 
   /**
    * Create the Server App object with given server rmi port number.
+   *
    * @param port server rmi port number.
    */
   public ServerApp(int port) {
@@ -53,17 +53,11 @@ public class ServerApp implements App {
     try {
       Server server = new Server();
       Service serverStub = (Service) UnicastRemoteObject.exportObject(server, 0);
-      LocateRegistry.createRegistry(port);
-      LOGGER.info("Local Registry to the server has been created!!!");
-      Naming.bind("server", serverStub);
-      LOGGER.info("Server remote object has been registered in the registry");
+      Registry registry = LocateRegistry.createRegistry(port);
+      LOGGER.info("Local Registry running one port: " + port);
+      registry.rebind(REMOTE_OBJECT, serverStub);
+      LOGGER.info("Remote object " + "'" + REMOTE_OBJECT + "'" + " has been registered in the registry");
     } catch (RemoteException e) {
-      LOGGER.severe(e.getMessage());
-      LOGGER.severe(e.getStackTrace().toString());
-    } catch (AlreadyBoundException e) {
-      LOGGER.severe(e.getMessage());
-      LOGGER.severe(e.getStackTrace().toString());
-    } catch (MalformedURLException e) {
       LOGGER.severe(e.getMessage());
       LOGGER.severe(e.getStackTrace().toString());
     }

@@ -13,9 +13,13 @@ import static org.junit.Assert.assertEquals;
  * of a remote key-value service accessed through RMI (Remote Method Invocation).
  */
 public class RmiThreadSafetyTest {
+
+  /**
+   * Do check the server port before running.
+   */
   @Test
   public void testThreadSafety() {
-
+    String registryURI = "rmi://localhost:9090/server";
     int numThreads = 100;
     CountDownLatch latch = new CountDownLatch(numThreads);
     AtomicInteger addPostfix = new AtomicInteger(0);
@@ -26,7 +30,7 @@ public class RmiThreadSafetyTest {
 
     Runnable addTask = () -> {
       try {
-        Service obj = (Service) Naming.lookup("rmi://localhost:1099" + "/server");
+        Service obj = (Service) Naming.lookup(registryURI);
         if (obj.put("key" + addPostfix.incrementAndGet(), "value") == 0) {
           successfulAdds.incrementAndGet();
         }
@@ -38,7 +42,7 @@ public class RmiThreadSafetyTest {
 
     Runnable deleteTask = () -> {
       try {
-        Service obj = (Service) Naming.lookup("rmi://localhost:1099" + "/server");
+        Service obj = (Service) Naming.lookup(registryURI);
         if (obj.delete("key" + deletePostfix.incrementAndGet()) == 0) {
           successfulDeletes.incrementAndGet();
         }
@@ -59,7 +63,7 @@ public class RmiThreadSafetyTest {
 
     try {
       latch.await();
-      Service obj = (Service) Naming.lookup("rmi://localhost:1099/server");
+      Service obj = (Service) Naming.lookup(registryURI);
       int expectedSize = successfulAdds.get() - successfulDeletes.get();
       int actualSize = obj.getMapSize();
       assertEquals(expectedSize, actualSize);
