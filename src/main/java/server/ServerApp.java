@@ -2,14 +2,16 @@ package server;
 
 import common.App;
 import common.Constants;
-import common.Service;
 
 import java.io.File;
 import java.io.IOException;
+import java.rmi.AlreadyBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
-import java.rmi.server.UnicastRemoteObject;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.logging.LogManager;
 import java.util.logging.Logger;
 
@@ -51,13 +53,30 @@ public class ServerApp implements App {
     // Set the RMI server hostname to localhost
     System.setProperty("java.rmi.server.hostname", Constants.LOCAL_HOST);
     try {
-      Server server = new Server();
-      Service serverStub = (Service) UnicastRemoteObject.exportObject(server, 0);
-      Registry registry = LocateRegistry.createRegistry(port);
-      LOGGER.info("Local Registry running one port: " + port);
-      registry.rebind(REMOTE_OBJECT, serverStub);
-      LOGGER.info("Remote object " + "'" + REMOTE_OBJECT + "'" + " has been registered in the registry");
+      // Start the coordinator
+      TwoPhaseCommitCoordinator coordinator = new TwoPhaseCommitCoordinator();
+      Registry coordinatorRegistry = LocateRegistry.createRegistry(port);
+      coordinatorRegistry.bind("Coordinator", coordinator);
+      LOGGER.info("Coordinator running on port: " + port);
+
+      List<String> hostList = Arrays.asList(Constants.LOCAL_HOST, Constants.LOCAL_HOST, Constants.LOCAL_HOST, Constants.LOCAL_HOST, Constants.LOCAL_HOST);
+      List<Integer> portList = new ArrayList<>();
+
+      // Start the participants
+      for (int i = 1; i <= 5; i++) {
+        Participant participant = new ParticipantImpl(Constants.LOCAL_HOST, port, port + i);
+        Registry participantRegistry = LocateRegistry.createRegistry(port + i);
+        participantRegistry.bind("Server", participant);
+        LOGGER.info("Participant " + i + " running on port: " + (port + i));
+        portList.add(port + i);
+      }
+      // Set participants in coordinator
+      coordinator.setParticipants(hostList, portList);
+
     } catch (RemoteException e) {
+      LOGGER.severe(e.getMessage());
+      LOGGER.severe(e.getStackTrace().toString());
+    } catch (AlreadyBoundException e) {
       LOGGER.severe(e.getMessage());
       LOGGER.severe(e.getStackTrace().toString());
     }

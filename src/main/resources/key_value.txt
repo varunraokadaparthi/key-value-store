@@ -14,6 +14,11 @@ put college Khoury
 put grade A-
 put level undergraduate
 put age 21
+put phoneNo 8888888888
+put college_name Khoury
+put grade_value A-
+put level_value undergraduate
+put age_value 21
 get phone
 get college
 get grade

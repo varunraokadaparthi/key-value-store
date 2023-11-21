@@ -18,14 +18,14 @@ keystore.jar
 
 ```
 java -jar keystore.jar -server                   -> defaults to port 1099
-java -jar keystore.jar -server -port 8081
+java -jar keystore.jar -server -port 15000
 ```
 
 ### How to run client?
 
 ```
 java -jar keystore.jar -client                   -> defaults to server rmi port 1099
-java -jar keystore.jar -client -port 8081
+java -jar keystore.jar -client -port 15000
 ```
 
 ### Log files location

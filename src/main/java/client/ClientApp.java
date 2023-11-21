@@ -12,6 +12,7 @@ import java.io.InputStreamReader;
 import java.rmi.Naming;
 import java.rmi.RemoteException;
 import java.util.List;
+import java.util.Random;
 import java.util.Scanner;
 import java.util.logging.LogManager;
 import java.util.logging.Logger;
@@ -29,7 +30,8 @@ public class ClientApp implements App {
   private static final String INVALID_PARAMETERS = "Invalid parameters length!!!";
   private static final String CLIENT_LOGGING_PROPERTIES = File.separator + "client-logging.properties";
   private final int port;
-  private static final String REMOTE_OBJECT = "server";
+  private static final String REMOTE_OBJECT = "Server";
+  private static final int REMOTE_SERVERS_COUNT = 5;
 
   /**
    * Create the Client App object.
@@ -51,10 +53,12 @@ public class ClientApp implements App {
   public void run() {
 
     Service service = null;
+    Random random = new Random();
+    int randomPortOffset;
     try {
       LogManager.getLogManager().readConfiguration(ClientApp.class.getResourceAsStream(CLIENT_LOGGING_PROPERTIES));
-      service = (Service) Naming.lookup("rmi://localhost:" + port + "/" + REMOTE_OBJECT);
-
+      randomPortOffset = random.nextInt(REMOTE_SERVERS_COUNT) + 1;
+      service = (Service) Naming.lookup("rmi://localhost:" + (port + randomPortOffset) + "/" + REMOTE_OBJECT);
       prePopulate(service);
     } catch (Exception e) {
       LOGGER.severe(e.getMessage());
@@ -69,21 +73,27 @@ public class ClientApp implements App {
       System.out.println("Enter command: ");
       String input = in.next();
       try {
+        randomPortOffset = random.nextInt(REMOTE_SERVERS_COUNT) + 1;
+        service = (Service) Naming.lookup("rmi://localhost:" + (port + randomPortOffset) + "/" + REMOTE_OBJECT);
         switch (input) {
           case "put":
             status = service.put(in.next(), in.next());
-            if (status != 0) {
-              LOGGER.warning("Put not successful");
-            } else {
+            if (status == Constants.STATUS_SUCCESS) {
               LOGGER.info("Put successful");
+            } else if (status == Constants.STATUS_ABORTED) {
+              LOGGER.info("Key already present. Put aborted");
+            } else {
+              LOGGER.warning("Put failed");
             }
             break;
           case "post":
             status = service.post(in.next(), in.next());
-            if (status != 0) {
-              LOGGER.warning("Post not successful");
-            } else {
+            if (status == Constants.STATUS_SUCCESS) {
               LOGGER.info("Post successful");
+            } else if (status == Constants.STATUS_ABORTED) {
+              LOGGER.info("Key already present. Post aborted");
+            } else {
+              LOGGER.warning("Post failed");
             }
             break;
           case "get":
@@ -91,10 +101,12 @@ public class ClientApp implements App {
             break;
           case "delete":
             status = service.delete(in.next());
-            if (status != 0) {
-              LOGGER.warning("Delete not successful");
-            } else {
+            if (status == Constants.STATUS_SUCCESS) {
               LOGGER.info("Delete successful");
+            } else if (status == Constants.STATUS_ABORTED) {
+              LOGGER.info("Key not present. Delete aborted");
+            } else {
+              LOGGER.warning("Delete failed");
             }
             break;
           case "help":
@@ -139,40 +151,50 @@ public class ClientApp implements App {
           case "put":
             if (parameters.length != 3) {
               LOGGER.warning(INVALID_PARAMETERS + " : " + s);
+              break;
             }
             status = server.put(parameters[1], parameters[2]);
-            if (status != 0) {
-              LOGGER.warning("Put not successful");
-            } else {
+            if (status == Constants.STATUS_SUCCESS) {
               LOGGER.info("Put successful");
+            } else if (status == Constants.STATUS_ABORTED) {
+              LOGGER.info("Key already present. Put aborted");
+            } else {
+              LOGGER.warning("Put failed");
             }
             break;
           case "post":
             if (parameters.length != 3) {
               LOGGER.warning(INVALID_PARAMETERS + " : " + s);
+              break;
             }
             status = server.post(parameters[1], parameters[2]);
-            if (status != 0) {
-              LOGGER.warning("Post not successful");
-            } else {
+            if (status == Constants.STATUS_SUCCESS) {
               LOGGER.info("Post successful");
+            } else if (status == Constants.STATUS_ABORTED) {
+              LOGGER.info("Key already present. Post aborted");
+            } else {
+              LOGGER.warning("Post failed");
             }
             break;
           case "get":
             if (parameters.length != 2) {
               LOGGER.warning(INVALID_PARAMETERS + " : " + s);
+              break;
             }
             LOGGER.info(server.get(parameters[1]));
             break;
           case "delete":
             if (parameters.length != 2) {
               LOGGER.warning(INVALID_PARAMETERS + " : " + s);
+              break;
             }
             status = server.delete(parameters[1]);
-            if (status != 0) {
-              LOGGER.warning("Delete not successful");
-            } else {
+            if (status == Constants.STATUS_SUCCESS) {
               LOGGER.info("Delete successful");
+            } else if (status == Constants.STATUS_ABORTED) {
+              LOGGER.info("Key not present. Delete aborted");
+            } else {
+              LOGGER.warning("Delete failed");
             }
             break;
           default:
@@ -180,9 +202,11 @@ public class ClientApp implements App {
             break;
         }
       } catch (RemoteException e) {
+        System.out.println("Exception: " + e.getMessage());
         LOGGER.severe(e.getMessage());
       }
     }
+    System.out.println("Exited prepopulate");
   }
 
   private static void displayInstructions() {
