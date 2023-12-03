@@ -7,7 +7,7 @@ import java.rmi.RemoteException;
  * The Service interface defines a set of remote methods for key-value service operations.
  * These methods allow clients to interact with a key-value service over RMI (Remote Method Invocation).
  */
-public interface Service extends Remote {
+public interface KVStoreInterface extends Remote {
 
   /**
    * Inserts a key-value pair into the service.
@@ -17,7 +17,7 @@ public interface Service extends Remote {
    * @return An integer indicating the result of the operation.
    * @throws RemoteException If a remote communication error occurs.
    */
-  int put(String key, String value) throws RemoteException;
+  void put(String key, String value) throws RemoteException;
 
   /**
    * Updates the value associated with a key in the service.
@@ -27,7 +27,7 @@ public interface Service extends Remote {
    * @return An integer indicating the result of the operation.
    * @throws RemoteException If a remote communication error occurs.
    */
-  int post(String key, String value) throws RemoteException;
+  void post(String key, String value) throws RemoteException;
 
   /**
    * Retrieves the value associated with a given key from the service.
@@ -45,7 +45,7 @@ public interface Service extends Remote {
    * @return An integer indicating the result of the operation.
    * @throws RemoteException If a remote communication error occurs.
    */
-  int delete(String key) throws RemoteException;
+  void delete(String key) throws RemoteException;
 
   /**
    * Returns the current size of the key-value map in the service.

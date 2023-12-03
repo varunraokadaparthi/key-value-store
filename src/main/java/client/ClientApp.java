@@ -2,7 +2,7 @@ package client;
 
 import common.App;
 import common.Constants;
-import common.Service;
+import common.KVStoreInterface;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -30,7 +30,6 @@ public class ClientApp implements App {
   private static final String INVALID_PARAMETERS = "Invalid parameters length!!!";
   private static final String CLIENT_LOGGING_PROPERTIES = File.separator + "client-logging.properties";
   private final int port;
-  private static final String REMOTE_OBJECT = "Server";
   private static final int REMOTE_SERVERS_COUNT = 5;
 
   /**
@@ -52,14 +51,14 @@ public class ClientApp implements App {
   @Override
   public void run() {
 
-    Service service = null;
+    KVStoreInterface server = null;
     Random random = new Random();
     int randomPortOffset;
     try {
       LogManager.getLogManager().readConfiguration(ClientApp.class.getResourceAsStream(CLIENT_LOGGING_PROPERTIES));
       randomPortOffset = random.nextInt(REMOTE_SERVERS_COUNT) + 1;
-      service = (Service) Naming.lookup("rmi://localhost:" + (port + randomPortOffset) + "/" + REMOTE_OBJECT);
-      prePopulate(service);
+      server = (KVStoreInterface) Naming.lookup("rmi://localhost:" + (port + randomPortOffset) + "/" + Constants.REMOTE_OBJECT);
+      prePopulate(server);
     } catch (Exception e) {
       LOGGER.severe(e.getMessage());
       LOGGER.severe(e.getStackTrace().toString());
@@ -68,46 +67,24 @@ public class ClientApp implements App {
 
     displayInstructions();
     Scanner in = new Scanner(System.in);
-    int status = 0;
     while (true) {
       System.out.println("Enter command: ");
       String input = in.next();
       try {
         randomPortOffset = random.nextInt(REMOTE_SERVERS_COUNT) + 1;
-        service = (Service) Naming.lookup("rmi://localhost:" + (port + randomPortOffset) + "/" + REMOTE_OBJECT);
+        server = (KVStoreInterface) Naming.lookup("rmi://localhost:" + (port + randomPortOffset) + "/" + Constants.REMOTE_OBJECT);
         switch (input) {
           case "put":
-            status = service.put(in.next(), in.next());
-            if (status == Constants.STATUS_SUCCESS) {
-              LOGGER.info("Put successful");
-            } else if (status == Constants.STATUS_ABORTED) {
-              LOGGER.info("Key already present. Put aborted");
-            } else {
-              LOGGER.warning("Put failed");
-            }
+            server.put(in.next(), in.next());
             break;
           case "post":
-            status = service.post(in.next(), in.next());
-            if (status == Constants.STATUS_SUCCESS) {
-              LOGGER.info("Post successful");
-            } else if (status == Constants.STATUS_ABORTED) {
-              LOGGER.info("Key already present. Post aborted");
-            } else {
-              LOGGER.warning("Post failed");
-            }
+            server.post(in.next(), in.next());
             break;
           case "get":
-            LOGGER.info(service.get(in.next()));
+            LOGGER.info(server.get(in.next()));
             break;
           case "delete":
-            status = service.delete(in.next());
-            if (status == Constants.STATUS_SUCCESS) {
-              LOGGER.info("Delete successful");
-            } else if (status == Constants.STATUS_ABORTED) {
-              LOGGER.info("Key not present. Delete aborted");
-            } else {
-              LOGGER.warning("Delete failed");
-            }
+            server.delete(in.next());
             break;
           case "help":
             displayInstructions();
@@ -135,7 +112,7 @@ public class ClientApp implements App {
    *
    * @throws IOException If an I/O error occurs during the operation.
    */
-  private void prePopulate(Service server) throws RemoteException {
+  private void prePopulate(KVStoreInterface server) throws RemoteException {
     InputStream inStream = ClientApp.class.getClassLoader().getResourceAsStream(KEY_VALUE_FILE_LOCATION);
     List<String> keyValuePairs = new BufferedReader(new InputStreamReader(inStream))
             .lines()
@@ -145,7 +122,6 @@ public class ClientApp implements App {
         continue;
       }
       String[] parameters = s.split(" ");
-      int status;
       try {
         switch (parameters[0]) {
           case "put":
@@ -153,28 +129,14 @@ public class ClientApp implements App {
               LOGGER.warning(INVALID_PARAMETERS + " : " + s);
               break;
             }
-            status = server.put(parameters[1], parameters[2]);
-            if (status == Constants.STATUS_SUCCESS) {
-              LOGGER.info("Put successful");
-            } else if (status == Constants.STATUS_ABORTED) {
-              LOGGER.info("Key already present. Put aborted");
-            } else {
-              LOGGER.warning("Put failed");
-            }
+            server.put(parameters[1], parameters[2]);
             break;
           case "post":
             if (parameters.length != 3) {
               LOGGER.warning(INVALID_PARAMETERS + " : " + s);
               break;
             }
-            status = server.post(parameters[1], parameters[2]);
-            if (status == Constants.STATUS_SUCCESS) {
-              LOGGER.info("Post successful");
-            } else if (status == Constants.STATUS_ABORTED) {
-              LOGGER.info("Key already present. Post aborted");
-            } else {
-              LOGGER.warning("Post failed");
-            }
+            server.post(parameters[1], parameters[2]);
             break;
           case "get":
             if (parameters.length != 2) {
@@ -188,14 +150,7 @@ public class ClientApp implements App {
               LOGGER.warning(INVALID_PARAMETERS + " : " + s);
               break;
             }
-            status = server.delete(parameters[1]);
-            if (status == Constants.STATUS_SUCCESS) {
-              LOGGER.info("Delete successful");
-            } else if (status == Constants.STATUS_ABORTED) {
-              LOGGER.info("Key not present. Delete aborted");
-            } else {
-              LOGGER.warning("Delete failed");
-            }
+            server.delete(parameters[1]);
             break;
           default:
             LOGGER.warning("Invalid Command!!! " + s);

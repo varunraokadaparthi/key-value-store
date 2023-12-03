@@ -55,5 +55,6 @@ public class Constants {
   public static final int STATUS_ABORTED = 1;
   public static final int STATUS_FAILED = -1;
   public static final int STATUS_SUCCESS = 0;
+  public static final String REMOTE_OBJECT = "Server";
 }
 
