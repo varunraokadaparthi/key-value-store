@@ -42,7 +42,7 @@ public class ServerApp implements App {
     try {
       LogManager.getLogManager().readConfiguration(ServerApp.class.getResourceAsStream(SERVER_LOGGING_PROPERTIES));
     } catch (IOException e) {
-      System.out.println("Unable to read log properties file!!!");
+      System.err.println("Unable to read log properties file!!!");
     }
     // Set the RMI server hostname to localhost
     System.setProperty("java.rmi.server.hostname", Constants.LOCAL_HOST);
@@ -64,7 +64,7 @@ public class ServerApp implements App {
         // Bind the server to the RMI registry
         registry.rebind(Constants.REMOTE_OBJECT + serverId, servers[serverId]);
 
-        System.out.println("Server " + serverId + " is ready at port " + port);
+        LOGGER.info("Server " + serverId + " is ready at port " + port);
       }
 
       // Set acceptors and learners for each server

@@ -51,13 +51,14 @@ public class ClientApp implements App {
   @Override
   public void run() {
 
-    KVStoreInterface server = null;
+    KVStoreInterface server;
     Random random = new Random();
     int randomPortOffset;
     try {
       LogManager.getLogManager().readConfiguration(ClientApp.class.getResourceAsStream(CLIENT_LOGGING_PROPERTIES));
       randomPortOffset = random.nextInt(REMOTE_SERVERS_COUNT) + 1;
-      server = (KVStoreInterface) Naming.lookup("rmi://localhost:" + (port + randomPortOffset) + "/" + Constants.REMOTE_OBJECT);
+      server = (KVStoreInterface) Naming.lookup("rmi://localhost:" + (port + randomPortOffset) + "/" + Constants.REMOTE_OBJECT + randomPortOffset);
+      LOGGER.info("Connected to Server: " + randomPortOffset + " Port: " + (port + randomPortOffset));
       prePopulate(server);
     } catch (Exception e) {
       LOGGER.severe(e.getMessage());
@@ -72,19 +73,19 @@ public class ClientApp implements App {
       String input = in.next();
       try {
         randomPortOffset = random.nextInt(REMOTE_SERVERS_COUNT) + 1;
-        server = (KVStoreInterface) Naming.lookup("rmi://localhost:" + (port + randomPortOffset) + "/" + Constants.REMOTE_OBJECT);
+        server = (KVStoreInterface) Naming.lookup("rmi://localhost:" + (port + randomPortOffset) + "/" + Constants.REMOTE_OBJECT + randomPortOffset);
+        LOGGER.info("Connected to Server: " + randomPortOffset + " Port: " + (port + randomPortOffset));
         switch (input) {
-          case "put":
+          case Constants.PUT:
             server.put(in.next(), in.next());
+            LOGGER.info(Constants.PUT + " successful");
             break;
-          case "post":
-            server.post(in.next(), in.next());
-            break;
-          case "get":
+          case Constants.GET:
             LOGGER.info(server.get(in.next()));
             break;
-          case "delete":
+          case Constants.DELETE:
             server.delete(in.next());
+            LOGGER.info(Constants.DELETE + " successful");
             break;
           case "help":
             displayInstructions();
@@ -117,6 +118,7 @@ public class ClientApp implements App {
     List<String> keyValuePairs = new BufferedReader(new InputStreamReader(inStream))
             .lines()
             .collect(Collectors.toList());
+    LOGGER.info("Pre Populating...");
     for (String s : keyValuePairs) {
       if (s.isEmpty()) {
         continue;
@@ -124,33 +126,28 @@ public class ClientApp implements App {
       String[] parameters = s.split(" ");
       try {
         switch (parameters[0]) {
-          case "put":
+          case Constants.PUT:
             if (parameters.length != 3) {
               LOGGER.warning(INVALID_PARAMETERS + " : " + s);
               break;
             }
             server.put(parameters[1], parameters[2]);
+            LOGGER.info(Constants.PUT + " successful");
             break;
-          case "post":
-            if (parameters.length != 3) {
-              LOGGER.warning(INVALID_PARAMETERS + " : " + s);
-              break;
-            }
-            server.post(parameters[1], parameters[2]);
-            break;
-          case "get":
+          case Constants.GET:
             if (parameters.length != 2) {
               LOGGER.warning(INVALID_PARAMETERS + " : " + s);
               break;
             }
             LOGGER.info(server.get(parameters[1]));
             break;
-          case "delete":
+          case Constants.DELETE:
             if (parameters.length != 2) {
               LOGGER.warning(INVALID_PARAMETERS + " : " + s);
               break;
             }
             server.delete(parameters[1]);
+            LOGGER.info(Constants.DELETE + " successful");
             break;
           default:
             LOGGER.warning("Invalid Command!!! " + s);
@@ -161,17 +158,16 @@ public class ClientApp implements App {
         LOGGER.severe(e.getMessage());
       }
     }
-    System.out.println("Exited prepopulate");
+    LOGGER.info("Done with Pre Population!!!");
   }
 
   private static void displayInstructions() {
     String message = "The following commands are available:\n" +
             "1. " + Constants.PUT + " key value\n" +
-            "2. " + Constants.POST + " key value\n" +
-            "3. " + Constants.GET + " key\n" +
-            "4. " + Constants.DELETE + " key\n" +
-            "5. help\n" +
-            "6. q or quit";
+            "2. " + Constants.GET + " key\n" +
+            "3. " + Constants.DELETE + " key\n" +
+            "4. help\n" +
+            "5. q or quit";
     System.out.println(message);
   }
 }

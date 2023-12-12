@@ -25,22 +25,22 @@ public class Constants {
   /**
    * Represents the "PUT" request method.
    */
-  public static final String PUT = "put";
+  public static final String PUT = "PUT";
 
   /**
    * Represents the "POST" request method.
    */
-  public static final String POST = "post";
+  public static final String POST = "POST";
 
   /**
    * Represents the "GET" request method.
    */
-  public static final String GET = "get";
+  public static final String GET = "GET";
 
   /**
    * Represents the "DELETE" request method.
    */
-  public static final String DELETE = "delete";
+  public static final String DELETE = "DELETE";
 
   /**
    * The delimiter used for separating values in data.

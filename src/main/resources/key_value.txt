@@ -1,31 +1,31 @@
-post first_name john
-post last_name doe
-post age 20
-post phone 9999999999
-post college NEU
-post nuid 12345
-post course bsds
-post grade A
-post level graduate
-post start_month jan
-post start_year 2023
-put phone 8888888888
-put college Khoury
-put grade A-
-put level undergraduate
-put age 21
-put phoneNo 8888888888
-put college_name Khoury
-put grade_value A-
-put level_value undergraduate
-put age_value 21
-get phone
-get college
-get grade
-get level
-get age
-delete phone
-delete college
-delete grade
-delete level
-delete age
+PUT first_name john
+PUT last_name doe
+PUT age 20
+PUT phone 9999999999
+PUT college NEU
+PUT nuid 12345
+PUT course bsds
+PUT grade A
+PUT level graduate
+PUT start_month jan
+PUT start_year 2023
+PUT phone 8888888888
+PUT college Khoury
+PUT grade A-
+PUT level undergraduate
+PUT age 21
+PUT phoneNo 8888888888
+PUT college_name Khoury
+PUT grade_value A-
+PUT level_value undergraduate
+PUT age_value 21
+GET phone
+GET college
+GET grade
+GET level
+GET age
+DELETE phone
+DELETE college
+DELETE grade
+DELETE level
+DELETE age

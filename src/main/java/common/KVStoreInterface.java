@@ -20,16 +20,6 @@ public interface KVStoreInterface extends Remote {
   void put(String key, String value) throws RemoteException;
 
   /**
-   * Updates the value associated with a key in the service.
-   *
-   * @param key   The key to update.
-   * @param value The new value to associate with the key.
-   * @return An integer indicating the result of the operation.
-   * @throws RemoteException If a remote communication error occurs.
-   */
-  void post(String key, String value) throws RemoteException;
-
-  /**
    * Retrieves the value associated with a given key from the service.
    *
    * @param key The key to retrieve.
