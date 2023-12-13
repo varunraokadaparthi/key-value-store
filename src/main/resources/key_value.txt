@@ -1,24 +1,13 @@
-PUT first_name john
-PUT last_name doe
-PUT age 20
-PUT phone 9999999999
+PUT phone 888888
 PUT college NEU
-PUT nuid 12345
-PUT course bsds
-PUT grade A
-PUT level graduate
-PUT start_month jan
-PUT start_year 2023
-PUT phone 8888888888
-PUT college Khoury
 PUT grade A-
 PUT level undergraduate
-PUT age 21
-PUT phoneNo 8888888888
-PUT college_name Khoury
-PUT grade_value A-
-PUT level_value undergraduate
-PUT age_value 21
+PUT age 18
+PUT phone 9999999999
+PUT college Khoury
+PUT grade A
+PUT level graduate
+PUT age 20
 GET phone
 GET college
 GET grade

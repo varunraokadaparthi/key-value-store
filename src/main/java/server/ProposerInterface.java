@@ -14,7 +14,8 @@ public interface ProposerInterface extends Remote {
    *
    * @param proposalId    The unique identifier for the proposal.
    * @param proposalValue The value being proposed.
+   * @return true if operation was a success; false otherwise
    * @throws RemoteException If a remote invocation error occurs.
    */
-  void propose(int proposalId, Object proposalValue) throws RemoteException;
+  boolean propose(int proposalId, Object proposalValue) throws RemoteException;
 }

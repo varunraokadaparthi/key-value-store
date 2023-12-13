@@ -6,6 +6,8 @@ import common.KVStoreInterface;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -18,17 +20,20 @@ import java.util.logging.Logger;
 public class Server extends UnicastRemoteObject implements ProposerInterface, AcceptorInterface, LearnerInterface, KVStoreInterface {
 
   private static final Logger LOGGER = Logger.getLogger(Server.class.getName());
-  private ConcurrentHashMap<String, String> kvStore = new ConcurrentHashMap<>();
-  private AcceptorInterface[] acceptors;
-  private LearnerInterface[] learners;
+  private static final AtomicInteger sequenceNum = new AtomicInteger(0);
+  private final double FAILURE_RATE = 0.25;
+  private final boolean failure;
+  private final ConcurrentHashMap<String, String> kvStore = new ConcurrentHashMap<>();
   private final int numServers;
   private final int serverId;
-  private static final AtomicInteger sequenceNum = new AtomicInteger(0);
-  private int promiseId;
   private final int MAJORITY_COUNT;
   private final String KEY_NOT_FOUND = "Key Not found";
-  private static final double FAILURE_RATE = 0.1; // 10% failure rate
-  private Random random = new Random();
+  private final Random random = new Random();
+  private AcceptorInterface[] acceptors;
+  private LearnerInterface[] learners;
+  private int promiseId;
+  private boolean isPendingAcceptedValue;
+  private Object acceptedValue;
 
   /**
    * Constructor to create a Server instance.
@@ -36,11 +41,16 @@ public class Server extends UnicastRemoteObject implements ProposerInterface, Ac
    * @param serverId   The unique ID of this server.
    * @param numServers The total number of servers in the system.
    */
-  public Server(int serverId, int numServers) throws RemoteException {
+  public Server(int serverId, int numServers, boolean failure) throws RemoteException {
     this.numServers = numServers;
     this.serverId = serverId;
     this.promiseId = 0;
     this.MAJORITY_COUNT = Math.floorDiv(numServers, 2) + 1;
+    this.isPendingAcceptedValue = false;
+    this.failure = failure;
+    if (failure) {
+      LOGGER.info("Server" + serverId + " Failure Rate: " + FAILURE_RATE);
+    }
   }
 
   /**
@@ -62,9 +72,9 @@ public class Server extends UnicastRemoteObject implements ProposerInterface, Ac
   }
 
   @Override
-  public synchronized void put(String key, String value) throws RemoteException {
+  public synchronized boolean put(String key, String value) throws RemoteException {
     LOGGER.info("Server" + serverId + " received request: " + Constants.PUT + " " + key + " " + value);
-    proposeOperation(new Operation(Constants.PUT, key, value));
+    return proposeOperation(new Operation(Constants.PUT, key, value));
   }
 
   @Override
@@ -75,14 +85,9 @@ public class Server extends UnicastRemoteObject implements ProposerInterface, Ac
   }
 
   @Override
-  public synchronized void delete(String key) throws RemoteException {
+  public synchronized boolean delete(String key) throws RemoteException {
     LOGGER.info("Server" + serverId + " received request: " + Constants.DELETE + " " + key);
-    proposeOperation(new Operation(Constants.DELETE, key));
-  }
-
-  @Override
-  public int getMapSize() throws RemoteException {
-    return kvStore.size();
+    return proposeOperation(new Operation(Constants.DELETE, key));
   }
 
   /**
@@ -91,20 +96,21 @@ public class Server extends UnicastRemoteObject implements ProposerInterface, Ac
    * @param operation The operation to be proposed.
    * @throws RemoteException If a remote error occurs.
    */
-  private void proposeOperation(Operation operation) throws RemoteException {
+  private boolean proposeOperation(Operation operation) throws RemoteException {
     int proposalId = generateProposalId();
-    propose(proposalId, operation);
+    return propose(proposalId, operation);
   }
 
   @Override
   public synchronized int prepare(int proposalId) throws RemoteException {
-    // Implement Paxos prepare logic here
-    // TODO: Pass failure rate as an argument for easier
-    // TODO: https://piazza.com/class/lm865n8sfd7jw/post/193
-    if (random.nextDouble() < FAILURE_RATE) {
+    if (failure && random.nextDouble() < FAILURE_RATE) {
       throw new RemoteException("Acceptor" + serverId + ": Simulated failure");
     }
-    LOGGER.info("Acceptor" + serverId + " received proposal id: " + promiseId);
+    LOGGER.info("Acceptor" + serverId + " received proposal id: " + proposalId);
+    if (isPendingAcceptedValue) {
+      LOGGER.info("Acceptor" + serverId + " pending promise id: " + promiseId);
+      return promiseId;
+    }
     if (proposalId > promiseId) {
       promiseId = proposalId;
     }
@@ -115,72 +121,96 @@ public class Server extends UnicastRemoteObject implements ProposerInterface, Ac
   @Override
   public synchronized boolean accept(int proposalId, Object proposalValue) throws RemoteException {
     // Implement Paxos accept logic here
-    if (random.nextDouble() < FAILURE_RATE) {
+    if (failure && random.nextDouble() < FAILURE_RATE) {
       throw new RemoteException("Acceptor" + serverId + ": Simulated failure");
     }
-    LOGGER.info("Acceptor" + serverId + " accepted proposal id: " + proposalId);
-    for (int i = 0; i < numServers; i++) {
-      learners[i].learn(proposalId, proposalValue);
+    if (proposalId < promiseId) {
+      LOGGER.info("Acceptor" + serverId + ": Proposal id " + proposalId + " < " + " Promise id" + promiseId);
+      return false;
     }
-    return false;
+    LOGGER.info("Acceptor" + serverId + " accepted proposal id: " + proposalId);
+    isPendingAcceptedValue = true;
+    acceptedValue = proposalValue;
+    return true;
   }
 
   @Override
-  public synchronized void propose(int proposalId, Object proposalValue) throws RemoteException {
+  public synchronized boolean propose(int proposalId, Object proposalValue) throws RemoteException {
     LOGGER.info("Proposer" + serverId + " received request with proposal id: " + proposalId);
     // used to store replies from acceptor
     int[] replies = new int[numServers];
     Arrays.fill(replies, -1);
-    int replyCount = 0;
-    int acceptedId = 0;
     // Send prepare message to all acceptors
     for (int i = 0; i < numServers; i++) {
       try {
         // store replies from acceptor
         LOGGER.info("Proposer" + serverId + " sending proposal with proposal id: " + proposalId + " to Acceptor" + i);
         replies[i] = acceptors[i].prepare(proposalId);
-        acceptedId = Math.max(acceptedId, replies[i]);
-        replyCount++;
       } catch (Exception e) {
-          LOGGER.info(e.getMessage());
-//          throw new RuntimeException(e);
+        LOGGER.info(e.getMessage());
       }
     }
 
-    // if consensus has been reached
-    if (replyCount >= MAJORITY_COUNT) {
-      LOGGER.warning("Proposer" + serverId + " Consensus has been reached!!!");
-      if (acceptedId == proposalId) {
-        for (int i = 0; i < numServers; i++) {
-          if (replies[i] != -1) {
-            try {
-              acceptors[i].accept(proposalId, proposalValue);
-            } catch (Exception e) {
-              LOGGER.info(e.getMessage());
+    Map<Integer, Integer> frequencyMap = new HashMap<>();
+    for (int i = 0; i < numServers; i++) {
+      if (replies[i] != -1) {
+        frequencyMap.put(replies[i], frequencyMap.getOrDefault(replies[i], 0) + 1);
+      }
+    }
+    int frequentProposalId = -1;
+    int frequency = 0;
+    for (Map.Entry<Integer, Integer> entry : frequencyMap.entrySet()) {
+      if (entry.getValue() > frequency) {
+        frequency = entry.getValue();
+        frequentProposalId = entry.getKey();
+      }
+    }
+
+    int acceptedCount = 0;
+    if (frequency >= MAJORITY_COUNT) {
+      for (int i = 0; i < numServers; i++) {
+        if (replies[i] != -1) {
+          try {
+            if (acceptors[i].accept(frequentProposalId, proposalValue)) {
+              acceptedCount++;
             }
+          } catch (Exception e) {
+            LOGGER.info(e.getMessage());
           }
         }
       }
-      // If the highest id returned > proposal ID, then
-      // generate new id and redo the propose step.
-      else if (acceptedId > proposalId) {
-        while (acceptedId > proposalId) {
+      if (acceptedCount >= MAJORITY_COUNT && frequentProposalId == proposalId) {
+        LOGGER.warning("Proposer" + serverId + " Consensus has been reached!!!");
+        for (int i = 0; i < numServers; i++) {
+          try {
+            this.learners[i].learn(frequentProposalId, this.acceptedValue);
+          } catch (Exception e) {
+            LOGGER.info("Proposer" + serverId + " Learner" + i + " failed!!!");
+          }
+        }
+        return true;
+      } else {
+        // If the frequent id returned > proposal ID, then
+        // generate new id and redo the propose step.
+        while (frequentProposalId > proposalId) {
           LOGGER.info("Proposer" + serverId + " Updating the sequence Num!!!");
           proposalId = generateProposalId();
         }
         this.propose(proposalId, proposalValue);
       }
-    }
-    // If consensus has not been reached.
-    else {
+    } else {
+      // If consensus has not been reached.
       LOGGER.warning("Proposer" + serverId + " Consensus has not been reached!!!");
+      return false;
     }
+    return false;
   }
 
   @Override
   public synchronized void learn(int proposalId, Object acceptedValue) throws RemoteException {
     // Implement Paxos learn logic here
     applyOperation((Operation) acceptedValue);
+    isPendingAcceptedValue = false;
     LOGGER.info("Learner" + serverId + " learned proposal id: " + proposalId);
   }
 

@@ -19,13 +19,14 @@ public class ServerApp implements App {
   private static final Logger LOGGER = Logger.getLogger(ServerApp.class.getName());
   private static final String SERVER_LOGGING_PROPERTIES = File.separator + "server-logging.properties";
   private final int port;
-
+  private boolean failure;
 
   /**
    * Create the Server App object.
    */
   public ServerApp() {
     this.port = Constants.DEFAULT_RMI_PORT;
+    this.failure = false;
   }
 
   /**
@@ -35,6 +36,12 @@ public class ServerApp implements App {
    */
   public ServerApp(int port) {
     this.port = port;
+    this.failure =false;
+  }
+
+  public ServerApp(int port, boolean failure) {
+    this.port = port;
+    this.failure = failure;
   }
 
   @Override
@@ -57,14 +64,14 @@ public class ServerApp implements App {
         int port = this.port + serverId; // Increment port for each server
 
         // Create server instance
-        servers[serverId] = new Server(serverId, numServers);
+        servers[serverId] = new Server(serverId, numServers, this.failure);
 
         // Create RMI Registry
         Registry registry = LocateRegistry.createRegistry(port);
         // Bind the server to the RMI registry
         registry.rebind(Constants.REMOTE_OBJECT + serverId, servers[serverId]);
 
-        LOGGER.info("Server " + serverId + " is ready at port " + port);
+        LOGGER.info("Server" + serverId + " is ready at port " + port);
       }
 
       // Set acceptors and learners for each server
@@ -72,18 +79,14 @@ public class ServerApp implements App {
         AcceptorInterface[] acceptors = new AcceptorInterface[numServers];
         LearnerInterface[] learners = new LearnerInterface[numServers];
         for (int i = 0; i < numServers; i++) {
-          if (i != serverId) {
-            acceptors[i] = servers[i];
-            learners[i] = servers[i];
-          }
+          acceptors[i] = servers[i];
+          learners[i] = servers[i];
         }
         servers[serverId].setAcceptors(acceptors);
         servers[serverId].setLearners(learners);
       }
-
     } catch (Exception e) {
       LOGGER.severe(e.getMessage());
-      LOGGER.severe(e.getStackTrace().toString());
     }
   }
 }

@@ -9,7 +9,9 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.MalformedURLException;
 import java.rmi.Naming;
+import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.util.List;
 import java.util.Random;
@@ -48,18 +50,22 @@ public class ClientApp implements App {
     this.port = port;
   }
 
-  @Override
-  public void run() {
-
+  private KVStoreInterface getServer() throws MalformedURLException, NotBoundException, RemoteException {
     KVStoreInterface server;
     Random random = new Random();
     int randomPortOffset;
+    randomPortOffset = random.nextInt(REMOTE_SERVERS_COUNT) + 1;
+    server = (KVStoreInterface) Naming.lookup("rmi://localhost:" + (port + randomPortOffset) + "/" + Constants.REMOTE_OBJECT + randomPortOffset);
+    LOGGER.info("Connected to Server: " + randomPortOffset + " Port: " + (port + randomPortOffset));
+    return server;
+  }
+
+  @Override
+  public void run() {
+
     try {
       LogManager.getLogManager().readConfiguration(ClientApp.class.getResourceAsStream(CLIENT_LOGGING_PROPERTIES));
-      randomPortOffset = random.nextInt(REMOTE_SERVERS_COUNT) + 1;
-      server = (KVStoreInterface) Naming.lookup("rmi://localhost:" + (port + randomPortOffset) + "/" + Constants.REMOTE_OBJECT + randomPortOffset);
-      LOGGER.info("Connected to Server: " + randomPortOffset + " Port: " + (port + randomPortOffset));
-      prePopulate(server);
+      prePopulate(getServer());
     } catch (Exception e) {
       LOGGER.severe(e.getMessage());
       LOGGER.severe(e.getStackTrace().toString());
@@ -68,24 +74,48 @@ public class ClientApp implements App {
 
     displayInstructions();
     Scanner in = new Scanner(System.in);
+    String[] parameters = {};
+    boolean retry = false;
+    int retryCount = 0;
     while (true) {
-      System.out.println("Enter command: ");
-      String input = in.next();
+      if (!retry) {
+        System.out.println("Enter command: ");
+        String input = in.nextLine();
+        parameters = input.split(" ");
+        parameters[0] = parameters[0].toUpperCase();
+      } else {
+        LOGGER.info("Retry: Connecting to another server!!!");
+      }
       try {
-        randomPortOffset = random.nextInt(REMOTE_SERVERS_COUNT) + 1;
-        server = (KVStoreInterface) Naming.lookup("rmi://localhost:" + (port + randomPortOffset) + "/" + Constants.REMOTE_OBJECT + randomPortOffset);
-        LOGGER.info("Connected to Server: " + randomPortOffset + " Port: " + (port + randomPortOffset));
-        switch (input) {
+        switch (parameters[0]) {
           case Constants.PUT:
-            server.put(in.next(), in.next());
-            LOGGER.info(Constants.PUT + " successful");
+            if (parameters.length != 3) {
+              LOGGER.warning("Invalid Command!!!");
+              break;
+            }
+            if (getServer().put(parameters[1], parameters[2])) {
+              LOGGER.info(Constants.PUT + " successful");
+            } else {
+              LOGGER.info(Constants.PUT + " failed");
+            }
             break;
           case Constants.GET:
-            LOGGER.info(server.get(in.next()));
+            if (parameters.length != 2) {
+              LOGGER.warning("Invalid Command!!!");
+              break;
+            }
+            LOGGER.info(getServer().get(parameters[1]));
             break;
           case Constants.DELETE:
-            server.delete(in.next());
-            LOGGER.info(Constants.DELETE + " successful");
+            if (parameters.length != 2) {
+              LOGGER.warning("Invalid Command!!!");
+              break;
+            }
+            if (getServer().delete(parameters[1])) {
+              LOGGER.info(Constants.DELETE + " successful");
+            } else {
+              LOGGER.info(Constants.DELETE + " failed");
+            }
             break;
           case "help":
             displayInstructions();
@@ -97,13 +127,22 @@ public class ClientApp implements App {
             LOGGER.warning("Invalid Command!!!");
             break;
         }
-        if ("q".equals(input) || "quit".equals(input)) {
+        retry = false;
+        if ("q".equals(parameters[0]) || "quit".equals(parameters[0])) {
           LOGGER.info("Closing Application!!!");
           System.exit(0);
           break;
         }
       } catch (Exception e) {
-        LOGGER.severe(e.getMessage());
+        retryCount++;
+        if (retryCount > REMOTE_SERVERS_COUNT) {
+          LOGGER.info("Max retries!!!");
+          retry = false;
+          retryCount = 0;
+        } else {
+          retry = true;
+          LOGGER.severe(e.getMessage());
+        }
       }
     }
   }
@@ -124,6 +163,7 @@ public class ClientApp implements App {
         continue;
       }
       String[] parameters = s.split(" ");
+      parameters[0] = parameters[0].toUpperCase();
       try {
         switch (parameters[0]) {
           case Constants.PUT:
@@ -131,8 +171,11 @@ public class ClientApp implements App {
               LOGGER.warning(INVALID_PARAMETERS + " : " + s);
               break;
             }
-            server.put(parameters[1], parameters[2]);
-            LOGGER.info(Constants.PUT + " successful");
+            if (server.put(parameters[1], parameters[2])) {
+              LOGGER.info(Constants.PUT + " successful");
+            } else {
+              LOGGER.info(Constants.PUT + " failed");
+            }
             break;
           case Constants.GET:
             if (parameters.length != 2) {
@@ -146,15 +189,17 @@ public class ClientApp implements App {
               LOGGER.warning(INVALID_PARAMETERS + " : " + s);
               break;
             }
-            server.delete(parameters[1]);
-            LOGGER.info(Constants.DELETE + " successful");
+            if (server.delete(parameters[1])) {
+              LOGGER.info(Constants.DELETE + " successful");
+            } else {
+              LOGGER.info(Constants.DELETE + " failed");
+            }
             break;
           default:
             LOGGER.warning("Invalid Command!!! " + s);
             break;
         }
       } catch (RemoteException e) {
-        System.out.println("Exception: " + e.getMessage());
         LOGGER.severe(e.getMessage());
       }
     }

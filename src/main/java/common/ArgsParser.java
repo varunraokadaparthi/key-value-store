@@ -16,7 +16,7 @@ public class ArgsParser {
    * @return An instance of the `App` class based on the parsed arguments.
    */
   public App getApp(String[] args) {
-    if (args.length == 2 || args.length > 3) {
+    if (args.length == 2 || args.length > 4) {
       System.out.println("Invalid arguments!!!");
       System.exit(-1);
     }
@@ -52,6 +52,24 @@ public class ArgsParser {
       } else {
         System.out.println("Invalid Parameter!!!");
         System.exit(-1);
+      }
+    }
+    if (args.length == 4) {
+      if ("-server".equals(args[0])) {
+        if ("-port".equals(args[1])) {
+          if ("-f".equals(args[3])) {
+            app = new ServerApp(Integer.parseInt(args[2]), true);
+          } else {
+            System.out.println("Invalid arguments!!!");
+            System.exit(-1);
+          }
+        } else {
+          System.out.println("Invalid arguments!!!");
+          System.exit(-1);
+        }
+      } else {
+          System.out.println("Invalid arguments!!!");
+          System.exit(-1);
       }
     }
     return app;
